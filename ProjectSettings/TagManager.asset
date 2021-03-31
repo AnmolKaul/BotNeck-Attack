@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - Client
+  - Server
   layers:
   - Default
   - TransparentFX
