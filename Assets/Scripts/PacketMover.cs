@@ -17,6 +17,6 @@ public class PacketMover : MonoBehaviour
         transform.Translate(Vector3.forward * speed * Time.deltaTime);
 
         Quaternion lookAt = Quaternion.LookRotation(transform.forward, Vector3.up);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, speed);
+        //transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, speed);
     }
 }
