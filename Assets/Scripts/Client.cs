@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class Client : MonoBehaviour
 {
-    [SerializeField] private Transform serverPosition;
+    private Transform serverPosition;
 
     private LineRenderer lineRenderer;
     private LineRenderer cashedLine;
@@ -24,6 +24,7 @@ public class Client : MonoBehaviour
 
     private void Start()
     {
+        serverPosition = GameObject.Find("Server Pos").transform;
         // Setting line renderer properties
         lineRenderer = gameObject.AddComponent<LineRenderer>();
         lineRenderer.positionCount = 2;
