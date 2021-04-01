@@ -1,18 +1,34 @@
 ﻿using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 
 public class Client : MonoBehaviour
 {
     [SerializeField] private Transform serverPosition;
 
     private LineRenderer lineRenderer;
+    private LineRenderer cashedLine;
+
+    [SerializeField] private GameObject virusPacketPrefab;
+    [SerializeField] private GameObject goodPacketPrefab;
+
+    private float virusPacketSpawnTime;
+    private float goodPacketSpawnTime;
+    public float startvirusPacketSpawnTime;
+    public float startGoodPacketSpawnTime;
+
+    [SerializeField] private float virusPacketDecreaseTime;
+    [SerializeField] private float virusPacketMintime;
+
+    [HideInInspector] public bool canSpawnPackets = true;
 
     private void Start()
     {
         // Setting line renderer properties
         lineRenderer = gameObject.AddComponent<LineRenderer>();
         lineRenderer.positionCount = 2;
-        lineRenderer.startWidth = 0.04f;
-        lineRenderer.endWidth = 0.04f;
+        lineRenderer.startWidth = 0.02f;
+        lineRenderer.endWidth = 0.02f;
         lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
         lineRenderer.startColor = Color.green;
         lineRenderer.endColor = Color.green;
@@ -31,10 +47,13 @@ public class Client : MonoBehaviour
         BoxCollider collider = new GameObject(gameObject.name + " Client").AddComponent<BoxCollider>();
         collider.transform.parent = lineRenderer.transform;
 
+        // Add line collider script
+        collider.gameObject.AddComponent<LineCollider>();
+
         // Set collider size and position
         float lineWidth = lineRenderer.endWidth;
         float lineLength = Vector3.Distance(startPoint, endPoint);
-        collider.size = new Vector3(lineLength, lineWidth, 0.1f);
+        collider.size = new Vector3(lineLength, lineWidth, 0.2f);
 
         Vector3 midPoint = (startPoint + endPoint) / 2;
         collider.transform.position = midPoint;
@@ -47,6 +66,19 @@ public class Client : MonoBehaviour
         collider.transform.Rotate(0, angle, 0);
     }
 
+    private IEnumerator DisableLine(LineRenderer line)
+    {
+        line.enabled = false;
+
+        // Get the script from parent and stop packets from spawning
+        Client client = line.gameObject.GetComponent<Client>();
+        client.canSpawnPackets = false;
+
+        yield return new WaitForSeconds(3);
+        line.enabled = true;
+        client.canSpawnPackets = true;
+    }
+
     private void Update()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -55,14 +87,62 @@ public class Client : MonoBehaviour
         {
             if (Input.GetMouseButtonDown(0))
             {
-                // Disabling the line on click/touch
-                LineRenderer renderer = hit.transform.GetComponentInParent<LineRenderer>();
-                if (renderer != null)
+                // Get the line renderer of the tapped line
+                cashedLine = hit.transform.GetComponentInParent<LineRenderer>();
+
+                // Disable the line for some time
+                if (cashedLine != null)
                 {
-                    renderer.enabled = false;
+                    StartCoroutine(DisableLine(cashedLine));
                 }
+
+                // Destroy all packets which are still active on the tapped line
+                LineCollider lineCollider = hit.transform.gameObject.GetComponent<LineCollider>();
+
+                foreach (var collider in lineCollider.GetColliders())
+                {
+                    Destroy(collider.gameObject);
+                }
+
+                // Increment virus terminated count 
+                Server.instance.ModifyVirusPackets(lineCollider.GetDestoyedColliderCount());
+                lineCollider.ClearColliderSet();
+
             }
         }
 
+        #region  Packet Spawning
+
+        // Virus Packet spawning
+        if (virusPacketSpawnTime <= 0 && canSpawnPackets)
+        {
+            GeneratePacket(virusPacketPrefab);
+            virusPacketSpawnTime = startvirusPacketSpawnTime;
+            if (startvirusPacketSpawnTime > virusPacketMintime)
+            {
+                startvirusPacketSpawnTime -= virusPacketDecreaseTime;
+            }
+        }
+        else
+        {
+            virusPacketSpawnTime -= Time.deltaTime;
+        }
+
+        // Good packet spawning
+        if (goodPacketSpawnTime <= 0 && canSpawnPackets)
+        {
+            GeneratePacket(goodPacketPrefab);
+            goodPacketSpawnTime = startGoodPacketSpawnTime;
+        }
+        else
+        {
+            goodPacketSpawnTime -= Time.deltaTime;
+        }
+        #endregion
+    }
+
+    private void GeneratePacket(GameObject packet)
+    {
+        Instantiate(packet, transform.position, Quaternion.identity);
     }
 }

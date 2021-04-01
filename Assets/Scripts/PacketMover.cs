@@ -6,6 +6,9 @@ public class PacketMover : MonoBehaviour
 
     private Transform server;
 
+    private float damage = 0.1f;
+    private float shieldAmount = 0.1f;
+
     private void Start()
     {
         server = GameObject.FindGameObjectWithTag("Server").transform;
@@ -13,10 +16,51 @@ public class PacketMover : MonoBehaviour
 
     private void Update()
     {
-        //transform.position = Vector3.Lerp(transform.position, server.position, speed);
-        transform.Translate(Vector3.forward * speed * Time.deltaTime);
+        // Get direction to the server and move
+        Vector3 direction = (server.position - transform.position).normalized;
+        transform.Translate(direction * speed * Time.deltaTime);
 
-        Quaternion lookAt = Quaternion.LookRotation(transform.forward, Vector3.up);
-        //transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, speed);
+        if (transform.position.z > -2.2f)
+        {
+            gameObject.SetActive(false);
+        }
+
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.name == "Server" && gameObject.tag == "Virus")
+        {
+            // Destroy packet when hit with server
+            gameObject.SetActive(false);
+
+            Server serverObj = other.GetComponent<Server>();
+            if (serverObj != null)
+            {
+                serverObj.TakeDamage(damage);
+            }
+            else
+                return;
+
+        }
+
+        if (other.gameObject.name == "Server" && gameObject.tag == "Good")
+        {
+            // Destroy packet when hit with server
+            gameObject.SetActive(false);
+
+            // Add value to server's shield
+            Server serverObj = other.GetComponent<Server>();
+
+            // Increment good packets collected
+            serverObj.GetComponent<Server>().ModifyGoodPackets(1);
+
+            if (serverObj != null)
+            {
+                serverObj.Antivirus(shieldAmount);
+            }
+            else
+                return;
+        }
     }
 }
